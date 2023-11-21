@@ -1,0 +1,23 @@
+@hostname = localhost
+@port = 3030
+@host = {{hostname}}:{{port}}
+@contentType = application/json
+@createdAt = {{$datetime iso8601}}
+@modifiedBy = {{$processEnv USERNAME}}
+
+###
+
+POST http://{{host}}/createuser HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+    "username": "calieno", 
+    "name": "Luciano Ribeiro de Abreu",
+    "email": "calieno@gmail.com",
+    "password": "123456",
+    "cellphone": "24981217355"
+}
+
+###
+
+GET http://{{host}}/listuser HTTP/1.1
