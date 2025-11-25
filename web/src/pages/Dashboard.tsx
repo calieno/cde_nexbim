@@ -6,6 +6,11 @@ import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { TeamChat } from '../components/TeamChat';
 import { ProjectOverview } from '../components/ProjectOverview';
+import { Documents } from '../components/Documents';
+import { Models3D } from '../components/Models3D';
+import { Tasks } from '../components/Tasks';
+import { Costs } from '../components/Costs';
+import { Reports } from '../components/Reports';
 import { Users, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 interface User {
@@ -108,7 +113,16 @@ export function Dashboard() {
         switch (activeSection) {
             case 'dashboard':
                 return <ProjectOverview />;
-
+            case 'documentos':
+                return <Documents />;
+            case 'modelos3d':
+                return <Models3D />;
+            case 'tarefas':
+                return <Tasks />;
+            case 'custos':
+                return <Costs />;
+            case 'relatorios':
+                return <Reports />;
             case 'equipe':
                 return (
                     <div className="content-section">

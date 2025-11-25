@@ -9,7 +9,7 @@ import {
     Settings,
     HelpCircle
 } from 'lucide-react';
-import { useState } from 'react';
+
 
 interface SidebarProps {
     activeSection: string;
