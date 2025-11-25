@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { jwtDecode } from 'jwt-decode';
-import { Trash2, ArrowUpCircle, ArrowDownCircle, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Sidebar } from '../components/Sidebar';
+import { Header } from '../components/Header';
+import { TeamChat } from '../components/TeamChat';
+import { ProjectOverview } from '../components/ProjectOverview';
+import { Users, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 interface User {
     id: string;
@@ -17,9 +21,11 @@ interface DecodedToken {
 }
 
 export function Dashboard() {
+    const [activeSection, setActiveSection] = useState('dashboard');
     const [users, setUsers] = useState<User[]>([]);
     const [myId, setMyId] = useState('');
     const [myLevel, setMyLevel] = useState(0);
+    const [myName, setMyName] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -34,7 +40,10 @@ export function Dashboard() {
     useEffect(() => {
         if (users.length > 0 && myId) {
             const me = users.find(u => u.id === myId);
-            if (me) setMyLevel(me.level);
+            if (me) {
+                setMyLevel(me.level);
+                setMyName(me.name);
+            }
         }
     }, [users, myId]);
 
@@ -57,7 +66,7 @@ export function Dashboard() {
     }
 
     async function handleDelete(userId: string) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+        if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
         try {
             await api.delete(`/users/${userId}`);
             fetchUsers();
@@ -66,130 +75,165 @@ export function Dashboard() {
         }
     }
 
-    function handleLogout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshTokenId');
-        navigate('/login');
-    }
-
     function getLevelName(level: number) {
         switch (level) {
-            case 1: return 'Level 1';
-            case 2: return 'Level 2';
-            case 3: return 'Level 3';
-            case 4: return 'ADM';
-            default: return `Level ${level}`;
+            case 1: return 'Nível 1';
+            case 2: return 'Nível 2';
+            case 3: return 'Nível 3';
+            case 4: return 'Administrador';
+            default: return `Nível ${level}`;
         }
     }
 
     function canPromote(targetUser: User, toLevel: number) {
-        if (myLevel === 4) return true; // ADM can do anything
+        if (myLevel === 4) return true;
         if (myLevel === 3) {
-            // Can promote to 3, but only if target is below 3
             return toLevel === 3 && targetUser.level < 3;
         }
         if (myLevel === 2) {
-            // Can promote to 2, but only if target is 1
             return toLevel === 2 && targetUser.level === 1;
         }
         return false;
     }
 
     function canDemote(targetUser: User) {
-        return myLevel === 4; // Only ADM can demote
+        return myLevel === 4;
     }
 
     function canDelete() {
-        return myLevel === 4; // Only ADM can delete
+        return myLevel === 4;
+    }
+
+    function renderContent() {
+        switch (activeSection) {
+            case 'dashboard':
+                return <ProjectOverview />;
+
+            case 'equipe':
+                return (
+                    <div className="content-section">
+                        <div className="section-header">
+                            <div>
+                                <h1>Gestão de Equipe</h1>
+                                <p className="subtitle">Gerencie os membros e permissões da equipe do projeto</p>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-header-row">
+                                <h3>
+                                    <Users size={20} />
+                                    Membros da Equipe
+                                </h3>
+                                <span className="team-count">{users.length} membros</span>
+                            </div>
+
+                            <div className="users-table-container">
+                                <table className="users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Usuário</th>
+                                            <th>E-mail</th>
+                                            <th>Nível de Acesso</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map(user => (
+                                            <tr key={user.id}>
+                                                <td>
+                                                    <div className="user-name-cell">
+                                                        <div className="user-avatar-small">
+                                                            {user.name.charAt(0)}
+                                                        </div>
+                                                        <span>
+                                                            {user.name}
+                                                            {user.id === myId && <span className="you-badge">Você</span>}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>{user.username}</td>
+                                                <td>{user.email}</td>
+                                                <td>
+                                                    <span className={`level-badge level-${user.level}`}>
+                                                        {getLevelName(user.level)}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="action-buttons">
+                                                        {canPromote(user, user.level + 1) && (
+                                                            <button
+                                                                className="action-btn action-promote"
+                                                                onClick={() => handleUpdateLevel(user.id, user.level + 1)}
+                                                                title="Promover"
+                                                            >
+                                                                <ArrowUpCircle size={16} />
+                                                            </button>
+                                                        )}
+
+                                                        {canDemote(user) && user.level > 1 && (
+                                                            <button
+                                                                className="action-btn action-demote"
+                                                                onClick={() => handleUpdateLevel(user.id, user.level - 1)}
+                                                                title="Rebaixar"
+                                                            >
+                                                                <ArrowDownCircle size={16} />
+                                                            </button>
+                                                        )}
+
+                                                        {canDelete() && user.id !== myId && (
+                                                            <button
+                                                                className="action-btn action-delete"
+                                                                onClick={() => handleDelete(user.id)}
+                                                                title="Deletar"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            default:
+                return (
+                    <div className="content-section">
+                        <div className="section-header">
+                            <h1>{activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}</h1>
+                            <p className="subtitle">Funcionalidade em desenvolvimento</p>
+                        </div>
+                        <div className="card">
+                            <div className="empty-state">
+                                <p>Esta seção está em desenvolvimento e será implementada em breve.</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+        }
     }
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
-                    <h1 style={{ margin: 0 }}>Dashboard</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                        Your Access: <span className={`badge badge-${myLevel}`}>{getLevelName(myLevel)}</span>
-                    </p>
-                </div>
-                <button onClick={handleLogout} className="btn btn-danger">
-                    <LogOut size={18} /> Logout
-                </button>
+        <div className="dashboard-layout">
+            <Sidebar
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
+            />
+
+            <div className="main-content">
+                <Header userName={myName} />
+                <main className="content-area">
+                    {renderContent()}
+                </main>
             </div>
 
-            <div className="card">
-                <h3 style={{ marginTop: 0, marginBottom: '1.5rem' }}>User Management</h3>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                                <th style={{ padding: '1rem' }}>Name</th>
-                                <th style={{ padding: '1rem' }}>Username</th>
-                                <th style={{ padding: '1rem' }}>Level</th>
-                                <th style={{ padding: '1rem' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(user => (
-                                <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                    <td style={{ padding: '1rem' }}>{user.name} {user.id === myId && '(You)'}</td>
-                                    <td style={{ padding: '1rem' }}>{user.username}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span className={`badge badge-${user.level}`}>{getLevelName(user.level)}</span>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {/* Promotion Logic */}
-                                            {canPromote(user, user.level + 1) && (
-                                                <button
-                                                    className="btn btn-sm btn-primary"
-                                                    onClick={() => handleUpdateLevel(user.id, user.level + 1)}
-                                                    title="Promote"
-                                                >
-                                                    <ArrowUpCircle size={16} />
-                                                </button>
-                                            )}
-
-                                            {/* Special case: Level 3 promoting Level 1 directly to 3? 
-                          The requirement says "Level 3 can promote Level 1 and Level 2 until Level 3".
-                          So if user is Level 1, Level 3 can promote them.
-                          My logic above `canPromote(user, user.level + 1)` only does +1.
-                          I should probably just show "Promote to Max" or specific buttons.
-                          Let's keep it simple: Step by step promotion is safer/clearer usually, 
-                          but if Level 3 wants to promote Level 1 to 3, they might need to click twice.
-                          Or I can show specific target buttons.
-                      */}
-
-                                            {/* Demotion Logic */}
-                                            {canDemote(user) && user.level > 1 && (
-                                                <button
-                                                    className="btn btn-sm"
-                                                    style={{ border: '1px solid var(--warning)', color: 'var(--warning)', background: 'transparent' }}
-                                                    onClick={() => handleUpdateLevel(user.id, user.level - 1)}
-                                                    title="Demote"
-                                                >
-                                                    <ArrowDownCircle size={16} />
-                                                </button>
-                                            )}
-
-                                            {/* Delete Logic */}
-                                            {canDelete() && user.id !== myId && (
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => handleDelete(user.id)}
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <TeamChat />
         </div>
     );
 }
