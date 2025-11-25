@@ -1,4 +1,5 @@
-import { Time } from "./lib/Time";
+import { Time } from "./lib/Time"
+import 'dotenv'
 
 const timestamp: number = Time.generateTimestamp();
 const experisIn = timestamp + 60
@@ -11,3 +12,8 @@ console.log(`\n\n${dateObject}`);
 //Gerar a Date a partir do timestamp
 const dateObjectAdd: Date = Time.convertToDateTime(experisIn);
 console.log(`${dateObjectAdd}`);
+
+
+const vPort = process.env.PORT
+
+console.log (`\n\n Porta: ${vPort}\n`)
